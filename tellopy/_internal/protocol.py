@@ -224,6 +224,7 @@ class FlightData(object):
             (" | WIFI: %2d" % self.wifi_strength) +
             (" | CAM: %2d" % self.camera_state) +
             (" | MODE: %2d" % self.fly_mode) +
+            (" | HEIGHT: %2d" % self.height) +
             # (", drone_battery_left=0x%04x" % self.drone_battery_left) +
             "")
 
@@ -286,6 +287,8 @@ class VideoData(object):
 class LogData(object):
     ID_NEW_MVO_FEEDBACK                = 29
     ID_IMU_ATTI                        = 2048
+    ID_NEW_VO_FEEDBACK                 = 2064 # Visual inertial odometry
+    ID_NEW_HEIGHT_FEEDBACK             = 16 # Height sensor
     unknowns = []
 
     def __init__(self, log, data = None):
@@ -293,24 +296,32 @@ class LogData(object):
         self.count = 0
         self.mvo = LogNewMvoFeedback(log)
         self.imu = LogImuAtti(log)
+        self.vo = LogNewVoFeedback(log)
+        self.height = LogNewHeightFeedback(log)
         if data:
             self.update(data)
 
     def __str__(self):
         return ('MVO: ' + str(self.mvo) +
                 '|IMU: ' + str(self.imu) +
+                '|VO: ' + str(self.vo) +
+                '|HEIGHT: ' + str(self.height) +
                 "")
 
     def format_cvs(self):
         return (
             self.mvo.format_cvs() +
             ',' + self.imu.format_cvs() +
+            ',' + self.vo.format_cvs() +
+            ',' + self.height.format_cvs() +
             "")
 
     def format_cvs_header(self):
         return (
             self.mvo.format_cvs_header() +
             ',' + self.imu.format_cvs_header() +
+            ',' + self.vo.format_cvs_header() +
+            ',' + self.height.format_cvs_header() +
             "")
 
     def update(self, data):
@@ -339,6 +350,10 @@ class LogData(object):
                 self.mvo.update(payload, self.count)
             elif id == self.ID_IMU_ATTI:
                 self.imu.update(payload, self.count)
+            elif id == self.ID_NEW_VO_FEEDBACK:
+                self.vo.update(payload, self.count)
+            elif id == self.ID_NEW_HEIGHT_FEEDBACK:
+                self.height.update(payload, self.count)
             else:
                 if not id in self.unknowns:
                     self.log.info('LogData: UNHANDLED LOG DATA: id=%5d, length=%4d' % (id, length-12))
@@ -391,6 +406,79 @@ class LogNewMvoFeedback(object):
         (self.pos_x, self.pos_y, self.pos_z) = struct.unpack_from('fff', data, 8)
         self.log.debug('LogNewMvoFeedback: ' + str(self))
 
+
+class LogNewVoFeedback(object):
+    def __init__(self, log = None, data = None):
+        self.log = log
+        self.count = 0
+        self.vel_x = 0.0
+        self.vel_y = 0.0
+        self.vel_z = 0.0
+        self.pos_x = 0.0
+        self.pos_y = 0.0
+        self.pos_z = 0.0
+        if (data != None):
+            self.update(data, count)
+
+    def __str__(self):
+        return (
+            ("VEL: %5.2f %5.2f %5.2f" % (self.vel_x, self.vel_y, self.vel_z))+
+            (" POS: %5.2f %5.2f %5.2f" % (self.pos_x, self.pos_y, self.pos_z))+
+            "")
+
+    def format_cvs(self):
+        return (
+            ("%f,%f,%f" % (self.vel_x, self.vel_y, self.vel_z))+
+            (",%f,%f,%f" % (self.pos_x, self.pos_y, self.pos_z))+
+            "")
+
+    def format_cvs_header(self):
+        return (
+            "vo.vel_x,vo.vel_y,vo.vel_z" + 
+            ",vo.pos_x,vo.pos_y,vo.pos_z" +
+            "")
+
+    def update(self, data, count = 0):
+        self.log.debug('LogNewVoFeedback: length=%d %s' % (len(data), byte_to_hexstring(data)))
+        self.count = count
+        (self.vel_x, self.vel_y, self.vel_z) = struct.unpack_from('<hhh', data, 2)
+        self.vel_x /= 100.0
+        self.vel_y /= 100.0
+        self.vel_z /= 100.0
+        (self.pos_x, self.pos_y, self.pos_z) = struct.unpack_from('fff', data, 8)
+        self.log.debug('LogNewVoFeedback: ' + str(self))
+
+class LogNewHeightFeedback(object):
+    def __init__(self, log = None, data = None):
+        self.log = log
+        self.count = 0
+        self.height = 0.0
+
+        if (data != None):
+            self.update(data, count)
+
+    def __str__(self):
+        return (
+            ("HEIGHT: %5.2f" % (self.height))+
+            "")
+
+    def format_cvs(self):
+        return (
+            ("%f" % (self.height))+
+            "")
+
+    def format_cvs_header(self):
+        return (
+            "height.height" + 
+            "")
+
+    def update(self, data, count = 0):
+        self.log.debug('LogNewHeightFeedback: length=%d %s' % (len(data), byte_to_hexstring(data)))
+        self.count = count
+        # print(len(data))
+        (self.height) = struct.unpack_from('<H', data, 0) # 2
+        self.height = self.height[0]/1000.0
+        self.log.debug('LogNewHeightFeedback: ' + str(self))
 
 class LogImuAtti(object):
     def __init__(self, log = None, data = None):
