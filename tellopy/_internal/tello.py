@@ -492,6 +492,48 @@ class Tello(object):
         self.set_throttle(-1)
         self.fast_mode = False            
 
+    def send_rc_control(self, left_right_velocity: int, forward_backward_velocity: int, up_down_velocity: int,
+                        yaw_velocity: int):
+        """Send RC control via four channels. Command is sent every self.TIME_BTW_RC_CONTROL_COMMANDS seconds.
+        Arguments:
+            left_right_velocity: -100~100 (left/right)
+            forward_backward_velocity: -100~100 (forward/backward)
+            up_down_velocity: -100~100 (up/down)
+            yaw_velocity: -100~100 (yaw)
+        """
+        """
+        Set_roll controls the the side to side tilt of the drone.
+        Pass in an int from -1.0 ~ 1.0. (positive value will make the drone move to the right)
+        """
+        roll = left_right_velocity/100
+        if self.right_x != self.__fix_range(roll):
+            log.info('set_roll(val=%4.2f)' % roll)
+        self.right_x = self.__fix_range(roll)
+        """
+        Set_pitch controls the forward and backward tilt of the drone.
+        Pass in an int from -1.0 ~ 1.0. (positive value will make the drone move forward)
+        """
+        pitch = forward_backward_velocity/100
+        if self.right_y != self.__fix_range(pitch):
+            log.info('set_pitch(val=%4.2f)' % pitch)
+        self.right_y = self.__fix_range(pitch)
+        """
+        Set_yaw controls the left and right rotation of the drone.
+        Pass in an int from -1.0 ~ 1.0. (positive value will make the drone turn to the right)
+        """
+        yaw = yaw_velocity/100
+        if self.left_x != self.__fix_range(yaw):
+            log.info('set_yaw(val=%4.2f)' % yaw)
+        self.left_x = self.__fix_range(yaw)
+        """
+        Set_throttle controls the vertical up and down motion of the drone.
+        Pass in an int from -1.0 ~ 1.0. (positive value means upward)
+        """
+        throttle = up_down_velocity/100
+        if self.left_y != self.__fix_range(throttle):
+            log.info('set_throttle(val=%4.2f)' % throttle)
+        self.left_y = self.__fix_range(throttle)
+
     def __send_stick_command(self):
         pkt = Packet(STICK_CMD, 0x60)
 
