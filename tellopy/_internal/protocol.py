@@ -447,7 +447,6 @@ class LogNewVoFeedback(object):
         self.vel_z /= 100.0
         (self.pos_x, self.pos_y, self.pos_z) = struct.unpack_from('fff', data, 12)
         self.log.debug('LogNewVoFeedback: ' + str(self))
-        print('LogNewVoFeedback: ' + str(self))
 
 class LogNewHeightFeedback(object):
     def __init__(self, log = None, data = None):
