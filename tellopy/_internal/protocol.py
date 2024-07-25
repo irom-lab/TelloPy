@@ -441,11 +441,11 @@ class LogNewVoFeedback(object):
     def update(self, data, count = 0):
         self.log.debug('LogNewVoFeedback: length=%d %s' % (len(data), byte_to_hexstring(data)))
         self.count = count
-        (self.vel_x, self.vel_y, self.vel_z) = struct.unpack_from('<hhh', data, 2)
+        (self.vel_x, self.vel_y, self.vel_z) = struct.unpack_from('fff', data, 0)
         self.vel_x /= 100.0
         self.vel_y /= 100.0
         self.vel_z /= 100.0
-        (self.pos_x, self.pos_y, self.pos_z) = struct.unpack_from('fff', data, 8)
+        (self.pos_x, self.pos_y, self.pos_z) = struct.unpack_from('fff', data, 12)
         self.log.debug('LogNewVoFeedback: ' + str(self))
 
 class LogNewHeightFeedback(object):
